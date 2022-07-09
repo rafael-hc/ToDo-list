@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:focus {
+    outline: transparent;
+    @apply shadow-1xl shadow-purple-dark;
+}
+
+html {
+    @apply text-[87.5%] md:text-[100%];
+}
+
+body {
+    @apply bg-gray-600;
+    -webkit-font-smoothing: antialiased;
+}
+
+body,
+input,
+textarea,
+button {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+}
