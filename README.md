@@ -1,4 +1,4 @@
-# Projeto Feed 
+# Projeto To-do list
 
 Aplicação de Gerenciador de Tarefas (ToDo List) utilizando React.js com TypeScript, onde foram aplicados os conceitos de Clean Code
 
