@@ -5,12 +5,19 @@ import classNames from 'classnames'
 interface TaskProps {
   id: string
   content: string
+  isChecked: boolean
   handleDeleteTask: (id: string) => void
   onComplete: (id: string, complete: boolean) => void
 }
 
-export function Task({ id, content, handleDeleteTask, onComplete }: TaskProps) {
-  const [isComplete, setIsComplete] = useState(false)
+export function Task({
+  id,
+  content,
+  handleDeleteTask,
+  onComplete,
+  isChecked,
+}: TaskProps) {
+  const [isComplete, setIsComplete] = useState(isChecked)
 
   function handleIsComplete() {
     setIsComplete((state) => (state = !isComplete))

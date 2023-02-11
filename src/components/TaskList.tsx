@@ -1,41 +1,70 @@
+import { parseCookies } from 'nookies'
 import { ClipboardText } from 'phosphor-react'
 import { ChangeEvent, FormEvent, useState } from 'react'
+import { useQuery } from 'react-query'
 import { v4 as uuidv4 } from 'uuid'
+import { api } from '../lib/axios'
 import { InputTask } from './InputTask'
 import { Task } from './Task'
 
 interface ContentTask {
   id: string
-  title: string
-  isComplete: boolean
+  task: string
+  isChecked: boolean
 }
 
 export function TaskList() {
-  const [Tasks, setTasks] = useState<ContentTask[]>([])
+  const [tasks, setTasks] = useState<ContentTask[]>([])
   const [taskTitleContent, setTaskTitleContent] = useState('')
   const [numberOfTask, setNumberOfTask] = useState(0)
   const [numberOfTaskComplete, setNumberOfTaskComplete] = useState(0)
+  const { '@todo:token': token } = parseCookies()
+
+  const { isLoading, error } = useQuery('todos', async () => {
+    const response = await api.get('/todos', {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    })
+    const todos = JSON.parse(response.data).todos as ContentTask[]
+    const todosCompleted = todos.filter((todo) => todo.isChecked === true)
+    setTasks(todos)
+    setNumberOfTask(todos.length)
+    setNumberOfTaskComplete(todosCompleted.length)
+    return JSON.parse(response.data)
+  })
+
+  console.log('estado task: ', tasks)
+  console.log(error)
 
   function handleNewTaskChanged(event: ChangeEvent<HTMLInputElement>) {
     setTaskTitleContent(event.target.value)
   }
 
-  function handleCreateNewTask(event: FormEvent) {
+  async function handleCreateNewTask(event: FormEvent) {
     event.preventDefault()
 
     setTasks([
-      ...Tasks,
-      { id: uuidv4(), title: taskTitleContent, isComplete: false },
+      ...tasks,
+      { id: uuidv4(), task: taskTitleContent, isChecked: false },
     ])
 
     setNumberOfTask((state) => state + 1)
 
+    const body = JSON.stringify({ task: taskTitleContent, isChecked: false })
+
+    await api.post('/todos', body, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    })
+
     setTaskTitleContent('')
   }
 
-  function handleDeleteTask(id: string) {
+  async function handleDeleteTask(id: string) {
     // eslint-disable-next-line array-callback-return
-    const tasksWithoutDeleteOne = Tasks.filter((task) => {
+    const tasksWithoutDeleteOne = tasks.filter((task) => {
       if (task.id !== id) {
         return task
       }
@@ -45,21 +74,39 @@ export function TaskList() {
     setNumberOfTask((state) => state - 1)
 
     setNumberOfTaskComplete(
-      tasksWithoutDeleteOne.filter((task) => task.isComplete === true).length,
+      tasksWithoutDeleteOne.filter((task) => task.isChecked === true).length,
     )
+
+    await api.delete(`/todos/${id}`, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    })
   }
 
-  function onComplete(id: string, complete: boolean) {
-    const taskRefreshedComplete = Tasks.map((task) => {
-      if (task.id === id) task.isComplete = complete
+  async function onComplete(id: string, complete: boolean) {
+    const taskRefreshedComplete = tasks.map((task) => {
+      if (task.id === id) task.isChecked = complete
       return task
     })
 
     setTasks((state) => (state = taskRefreshedComplete))
 
     setNumberOfTaskComplete(
-      taskRefreshedComplete.filter((task) => task.isComplete === true).length,
+      taskRefreshedComplete.filter((task) => task.isChecked === true).length,
     )
+
+    const body = JSON.stringify({ isChecked: complete })
+
+    await api.patch(`/todos/${id}`, body, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    })
+  }
+
+  if (isLoading) {
+    return <h1>Loading...</h1>
   }
 
   return (
@@ -91,14 +138,15 @@ export function TaskList() {
         <div className="rounded-lg border-t border-gray-400 mt-8 mb-4 overflow-hidden">
           {numberOfTask !== 0 ? (
             <div className="flex flex-col gap-3">
-              {Tasks.map((task) => {
+              {tasks.map((task) => {
                 return (
                   <Task
                     key={task.id}
                     id={task.id}
-                    content={task.title}
+                    content={task.task}
                     handleDeleteTask={handleDeleteTask}
                     onComplete={onComplete}
+                    isChecked={task.isChecked}
                   />
                 )
               })}
