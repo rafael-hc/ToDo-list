@@ -71,7 +71,7 @@ export function FormLogin({ changeStepForm }: FormLoginProps) {
         <div className="flex items-center">
           <p>E-mail:</p>
           <input
-            type="text"
+            type="email"
             placeholder="Seu e-mail"
             className="bg-gray-600 placeholder:text-gray-400 px-2 py-2 rounded-md flex-1 ml-3"
             {...register('email')}
