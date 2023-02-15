@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { api } from '../lib/axios'
 import { useNavigate } from 'react-router-dom'
+import { setCookie } from 'nookies'
 
 interface FormRegisterProps {
   changeStepForm: () => void
@@ -28,14 +29,22 @@ export function FormRegister({ changeStepForm }: FormRegisterProps) {
 
   async function handleRegister(data: RegisterFormData) {
     const jsonData = JSON.stringify(data)
-    const response = await api.post('/users', jsonData)
-    const dataUser = JSON.parse(response.data)
+    try {
+      const response = await api.post('/users', jsonData)
+      const { token } = JSON.parse(response.data)
 
-    if (!dataUser.savedUser) {
-      return alert(dataUser.message)
+      if (token) {
+        setCookie(null, '@todo:token', token, {
+          maxAge: 60 * 60 * 24 * 15, // 15 days
+          path: '/',
+        })
+        navigate('/todo')
+      }
+
+      navigate('/todo')
+    } catch (err: any) {
+      alert(err.message)
     }
-
-    navigate('/')
   }
 
   return (
