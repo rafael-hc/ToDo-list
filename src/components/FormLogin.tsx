@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { setCookie } from 'nookies'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -7,6 +8,11 @@ import { api } from '../lib/axios'
 
 interface FormLoginProps {
   changeStepForm: () => void
+}
+
+interface ResponseLoginProps {
+  email: string
+  password: string
 }
 
 const loginFormSchema = z.object({
@@ -19,6 +25,10 @@ const loginFormSchema = z.object({
 type LoginFormData = z.infer<typeof loginFormSchema>
 
 export function FormLogin({ changeStepForm }: FormLoginProps) {
+  const [response, setResponse] = useState<ResponseLoginProps>({
+    email: '',
+    password: '',
+  })
   const navigate = useNavigate()
   const {
     register,
@@ -26,23 +36,26 @@ export function FormLogin({ changeStepForm }: FormLoginProps) {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginFormSchema),
+    mode: 'onBlur',
   })
 
   async function handleLogin(data: LoginFormData) {
     const body = JSON.stringify(data)
+    setResponse({ email: '', password: '' })
     try {
       const response = await api.post('/users/login', body)
-      const dataUser = JSON.parse(response.data)
+      const { token, email, password } = JSON.parse(response.data)
 
-      if (!dataUser.token) {
-        return alert(dataUser.message)
+      if (token) {
+        setCookie(null, '@todo:token', token, {
+          maxAge: 60 * 60 * 24 * 15, // 15 days
+          path: '/',
+        })
+        navigate('/todo')
+      } else {
+        password && setResponse((state) => ({ ...state, password }))
+        email && setResponse((state) => ({ ...state, email }))
       }
-
-      setCookie(null, '@todo:token', dataUser.token, {
-        maxAge: 60 * 60 * 24 * 15, // 15 days
-        path: '/',
-      })
-      navigate('/todo')
     } catch (err: any) {
       alert(err.message)
     }
@@ -54,25 +67,35 @@ export function FormLogin({ changeStepForm }: FormLoginProps) {
       className="max-w-sm w-full flex flex-col gap-4 bg-gray-400 p-4 rounded-md"
     >
       <h1 className="text-3xl text-gray-200">Login</h1>
-      <label className="flex items-center justify-between text-base text-gray-300">
-        <p>E-mail:</p>
-        <input
-          type="text"
-          placeholder="Seu e-mail"
-          className="bg-gray-600 placeholder:text-gray-400 px-2 py-2 rounded-md flex-1 ml-3"
-          {...register('email')}
-        />
-        {errors.email?.message && <p>{String(errors.email.message)}</p>}
+      <label className="flex flex-col justify-center text-base text-gray-300">
+        <div className="flex items-center">
+          <p>E-mail:</p>
+          <input
+            type="text"
+            placeholder="Seu e-mail"
+            className="bg-gray-600 placeholder:text-gray-400 px-2 py-2 rounded-md flex-1 ml-3"
+            {...register('email')}
+          />
+        </div>
+        <p className="text-red-300 text-sm mt-2 text-right">
+          {errors.email?.message && String(errors.email.message)}
+          {response.email && String(response.email)}
+        </p>
       </label>
-      <label className="flex items-center justify-between text-base text-gray-300">
-        <p>Senha:</p>
-        <input
-          type="password"
-          placeholder="Seu senha"
-          className="bg-gray-600 placeholder:text-gray-400 px-2 py-2 rounded-md flex-1 ml-3"
-          {...register('password')}
-        />
-        {errors.password?.message && <p>{String(errors.password.message)}</p>}
+      <label className="flex flex-col justify-center text-base text-gray-300">
+        <div className="flex items-center">
+          <p>Senha:</p>
+          <input
+            type="password"
+            placeholder="Seu senha"
+            className="bg-gray-600 placeholder:text-gray-400 px-2 py-2 rounded-md flex-1 ml-3"
+            {...register('password')}
+          />
+        </div>
+        <p className="text-red-300 text-sm mt-2 text-right">
+          {errors.password?.message && String(errors.password.message)}
+          {response.password && String(response.password)}
+        </p>
       </label>
       <button
         disabled={isSubmitting}
