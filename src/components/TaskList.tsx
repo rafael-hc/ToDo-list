@@ -1,6 +1,6 @@
 import { parseCookies } from 'nookies'
 import { ClipboardText } from 'phosphor-react'
-import { ChangeEvent, FormEvent, useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from 'react-query'
 import { v4 as uuidv4 } from 'uuid'
 import { api } from '../lib/axios'
@@ -15,7 +15,6 @@ interface ContentTask {
 
 export function TaskList() {
   const [tasks, setTasks] = useState<ContentTask[]>([])
-  const [taskTitleContent, setTaskTitleContent] = useState('')
   const [numberOfTask, setNumberOfTask] = useState(0)
   const [numberOfTaskComplete, setNumberOfTaskComplete] = useState(0)
   const { '@todo:token': token } = parseCookies()
@@ -37,29 +36,18 @@ export function TaskList() {
   console.log('estado task: ', tasks)
   console.log(error)
 
-  function handleNewTaskChanged(event: ChangeEvent<HTMLInputElement>) {
-    setTaskTitleContent(event.target.value)
-  }
-
-  async function handleCreateNewTask(event: FormEvent) {
-    event.preventDefault()
-
-    setTasks([
-      ...tasks,
-      { id: uuidv4(), task: taskTitleContent, isChecked: false },
-    ])
+  async function handleCreateNewTask(task: string) {
+    setTasks([{ id: uuidv4(), task, isChecked: false }, ...tasks])
 
     setNumberOfTask((state) => state + 1)
 
-    const body = JSON.stringify({ task: taskTitleContent, isChecked: false })
+    const body = JSON.stringify({ task, isChecked: false })
 
     await api.post('/todos', body, {
       headers: {
         authorization: `Bearer ${token}`,
       },
     })
-
-    setTaskTitleContent('')
   }
 
   async function handleDeleteTask(id: string) {
@@ -111,11 +99,7 @@ export function TaskList() {
 
   return (
     <div>
-      <InputTask
-        handleNewTaskChanged={handleNewTaskChanged}
-        handleCreateNewTask={handleCreateNewTask}
-        taskTitleContent={taskTitleContent}
-      />
+      <InputTask handleCreateNewTask={handleCreateNewTask} />
       <div>
         <header className="flex justify-between mt-16 ">
           <div className="flex gap-2 items-center justify-center">
